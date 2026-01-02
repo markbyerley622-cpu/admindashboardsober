@@ -66,9 +66,9 @@ function verifyUserAppSignature(
  */
 router.post('/request', submissionRateLimiter, async (req, res, next) => {
   try {
-    // Verify signature from user app
+    // Verify signature from user app (use raw body to preserve exact payload)
     const signature = req.headers['x-signature'] as string;
-    const bodyStr = JSON.stringify(req.body);
+    const bodyStr = (req as any).rawBody || JSON.stringify(req.body);
 
     if (!verifyUserAppSignature(bodyStr, signature)) {
       throw Errors.unauthorized('Invalid request signature');
@@ -183,9 +183,9 @@ router.put('/direct', raw({ type: '*/*', limit: '10mb' }), async (req, res, next
  */
 router.post('/confirm', submissionRateLimiter, async (req, res, next) => {
   try {
-    // Verify signature from user app
+    // Verify signature from user app (use raw body to preserve exact payload)
     const signature = req.headers['x-signature'] as string;
-    const bodyStr = JSON.stringify(req.body);
+    const bodyStr = (req as any).rawBody || JSON.stringify(req.body);
 
     if (!verifyUserAppSignature(bodyStr, signature)) {
       throw Errors.unauthorized('Invalid request signature');

@@ -22,12 +22,13 @@ const router = Router();
  * Verify request signature from user app
  */
 function verifyAppSignature(
-  req: { body: unknown; headers: { 'x-signature'?: string } }
+  req: { body: unknown; headers: { 'x-signature'?: string }; rawBody?: string }
 ): boolean {
   const signature = req.headers['x-signature'];
   if (!signature) return false;
 
-  const payload = JSON.stringify(req.body);
+  // Use raw body to preserve exact payload for signature verification
+  const payload = req.rawBody || JSON.stringify(req.body);
   return verifyHmacSignature(payload, signature, config.webhookSecret);
 }
 
