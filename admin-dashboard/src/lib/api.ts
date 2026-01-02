@@ -11,7 +11,7 @@ import type {
   Admin,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboardsober.onrender.com/api/v1';
 
 // =============================================================================
 // AUTH TOKEN MANAGEMENT
