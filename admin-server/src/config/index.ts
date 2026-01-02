@@ -36,7 +36,7 @@ const configSchema = z.object({
   rateLimitMaxRequests: z.coerce.number().default(100),
 
   // Webhooks
-  webhookSecret: z.string().min(16, 'WEBHOOK_SECRET must be at least 16 characters'),
+  webhookSecret: z.string().min(16, 'WEBHOOK_SECRET must be at least 16 characters').default('sober-shared-secret-2024'),
   userAppWebhookUrl: z.string().optional(),
 
   // Security
