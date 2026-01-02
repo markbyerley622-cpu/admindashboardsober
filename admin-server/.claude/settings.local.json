@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill /F /PID 13112)",
+      "Bash(taskkill:*)",
+      "Bash(Stop-Process -Id 13112 -Force)",
+      "Bash(Stop-Process -Id 3864 -Force)",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 13112 -Force\")",
+      "Bash(powershell.exe -Command \"Stop-Process -Id 3864 -Force\")",
+      "Bash(npm run dev:*)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)"
+    ]
+  }
+}

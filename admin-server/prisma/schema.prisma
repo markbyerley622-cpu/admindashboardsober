@@ -1,0 +1,202 @@
+// =============================================================================
+// DATABASE SCHEMA - Admin Verification System (SQLite for Development)
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// =============================================================================
+// ADMIN USERS - Moderators and administrators
+// =============================================================================
+model AdminUser {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  role         String    @default("MODERATOR") // SUPER_ADMIN, ADMIN, MODERATOR, READ_ONLY
+  isActive     Boolean   @default(true) @map("is_active")
+
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  lastLoginAt  DateTime? @map("last_login_at")
+
+  // Relations
+  moderationActions ModerationAction[]
+  sessions          AdminSession[]
+
+  @@map("admin_users")
+}
+
+// =============================================================================
+// ADMIN SESSIONS - For secure session management
+// =============================================================================
+model AdminSession {
+  id           String   @id @default(uuid())
+  adminId      String   @map("admin_id")
+  tokenHash    String   @map("token_hash")
+  expiresAt    DateTime @map("expires_at")
+  ipAddress    String?  @map("ip_address")
+  userAgent    String?  @map("user_agent")
+
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  admin        AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([adminId])
+  @@map("admin_sessions")
+}
+
+// =============================================================================
+// PLATFORM USERS - Wallet references only
+// =============================================================================
+model PlatformUser {
+  id            String   @id @default(uuid())
+  walletAddress String   @unique @map("wallet_address")
+
+  totalApproved Int      @default(0) @map("total_approved")
+  totalRejected Int      @default(0) @map("total_rejected")
+  totalPending  Int      @default(0) @map("total_pending")
+
+  flagCount     Int      @default(0) @map("flag_count")
+  isSuspended   Boolean  @default(false) @map("is_suspended")
+  suspendedAt   DateTime? @map("suspended_at")
+  suspendReason String?  @map("suspend_reason")
+
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  submissions   TaskSubmission[]
+
+  @@index([walletAddress])
+  @@map("platform_users")
+}
+
+// =============================================================================
+// TASKS - Definition of verifiable tasks
+// =============================================================================
+model Task {
+  id              String   @id @default(uuid())
+  name            String
+  description     String
+  category        String
+
+  rewardAmount    Float    @map("reward_amount")
+  rewardToken     String   @default("SOL") @map("reward_token")
+
+  proofRequired   Boolean  @default(true) @map("proof_required")
+  maxSubmissions  Int      @default(1) @map("max_submissions")
+  cooldownHours   Int      @default(24) @map("cooldown_hours")
+
+  isActive        Boolean  @default(true) @map("is_active")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  submissions     TaskSubmission[]
+
+  @@index([category])
+  @@index([isActive])
+  @@map("tasks")
+}
+
+// =============================================================================
+// TASK SUBMISSIONS - User submissions for verification
+// =============================================================================
+model TaskSubmission {
+  id              String   @id @default(uuid())
+
+  userId          String   @map("user_id")
+  taskId          String   @map("task_id")
+
+  status          String   @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED, REWARD_PENDING, REWARD_PAID, EXPIRED, FLAGGED
+
+  proofFileKey    String?  @map("proof_file_key")
+  proofFileType   String?  @map("proof_file_type")
+  proofFileSize   Int?     @map("proof_file_size")
+  proofUploadedAt DateTime? @map("proof_uploaded_at")
+
+  userNote        String?  @map("user_note")
+  userIpHash      String?  @map("user_ip_hash")
+
+  reviewedById    String?  @map("reviewed_by_id")
+  reviewedAt      DateTime? @map("reviewed_at")
+  rejectionReason String?  @map("rejection_reason")
+  moderatorNote   String?  @map("moderator_note")
+
+  rewardTxHash    String?  @map("reward_tx_hash")
+  rewardPaidAt    DateTime? @map("reward_paid_at")
+
+  submittedAt     DateTime @default(now()) @map("submitted_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  submissionHash  String?  @unique @map("submission_hash")
+
+  user            PlatformUser @relation(fields: [userId], references: [id])
+  task            Task         @relation(fields: [taskId], references: [id])
+  moderationActions ModerationAction[]
+
+  @@index([status])
+  @@index([userId])
+  @@index([taskId])
+  @@index([submittedAt])
+  @@map("task_submissions")
+}
+
+// =============================================================================
+// MODERATION ACTIONS - Full audit trail
+// =============================================================================
+model ModerationAction {
+  id              String   @id @default(uuid())
+
+  submissionId    String   @map("submission_id")
+  adminId         String   @map("admin_id")
+
+  action          String   // VIEW, APPROVE, REJECT, FLAG, UNFLAG, ESCALATE, REVERT, SUSPEND_USER, UNSUSPEND_USER
+  previousStatus  String   @map("previous_status")
+  newStatus       String   @map("new_status")
+
+  reason          String?
+  internalNote    String?  @map("internal_note")
+
+  ipAddress       String?  @map("ip_address")
+  userAgent       String?  @map("user_agent")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  submission      TaskSubmission @relation(fields: [submissionId], references: [id])
+  admin           AdminUser      @relation(fields: [adminId], references: [id])
+
+  @@index([submissionId])
+  @@index([adminId])
+  @@index([createdAt])
+  @@map("moderation_actions")
+}
+
+// =============================================================================
+// WEBHOOK EVENTS - For integration with user app
+// =============================================================================
+model WebhookEvent {
+  id              String   @id @default(uuid())
+
+  eventType       String   @map("event_type")
+  payload         String   // JSON stored as string
+
+  targetUrl       String   @map("target_url")
+  status          String   @default("PENDING") // PENDING, DELIVERED, FAILED, RETRYING
+  attempts        Int      @default(0)
+  lastAttemptAt   DateTime? @map("last_attempt_at")
+  lastError       String?  @map("last_error")
+  deliveredAt     DateTime? @map("delivered_at")
+
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  @@index([status])
+  @@index([eventType])
+  @@map("webhook_events")
+}
