@@ -30,6 +30,10 @@ import { readFile, getFileMetadata } from './services/storage.js';
 // =============================================================================
 const app = express();
 
+// Trust proxy - required for Render/Heroku/etc where app is behind a load balancer
+// This allows express-rate-limit to correctly identify users via X-Forwarded-For
+app.set('trust proxy', 1);
+
 // =============================================================================
 // SECURITY MIDDLEWARE
 // =============================================================================
