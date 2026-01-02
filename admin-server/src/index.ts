@@ -108,6 +108,34 @@ app.get('/health', async (_req, res) => {
 });
 
 // =============================================================================
+// DEBUG ENDPOINT - Test signature verification
+// =============================================================================
+import { createHmacSignature } from './utils/index.js';
+
+app.post('/debug/test-signature', (req: any, res) => {
+  const signature = req.headers['x-signature'] as string;
+  const rawBody = req.rawBody;
+  const bodyStr = JSON.stringify(req.body);
+
+  const expectedFromRaw = rawBody ? createHmacSignature(rawBody, config.webhookSecret) : 'NO_RAW_BODY';
+  const expectedFromStringify = createHmacSignature(bodyStr, config.webhookSecret);
+
+  res.json({
+    success: true,
+    debug: {
+      receivedSignature: signature || 'NOT_PROVIDED',
+      hasRawBody: !!rawBody,
+      rawBodyLength: rawBody?.length || 0,
+      stringifiedBodyLength: bodyStr.length,
+      expectedSignatureFromRawBody: expectedFromRaw,
+      expectedSignatureFromStringify: expectedFromStringify,
+      signaturesMatch: signature === expectedFromRaw || signature === expectedFromStringify,
+      secretFirstChars: config.webhookSecret.substring(0, 10) + '...',
+    }
+  });
+});
+
+// =============================================================================
 // API ROUTES
 // =============================================================================
 const apiPrefix = config.apiPrefix;

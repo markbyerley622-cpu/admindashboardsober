@@ -55,8 +55,24 @@ function verifyUserAppSignature(
   payload: string,
   signature: string | undefined
 ): boolean {
-  if (!signature) return false;
-  return verifyHmacSignature(payload, signature, config.webhookSecret);
+  // Debug mode - bypass signature check if SKIP_SIGNATURE_CHECK is set
+  if (process.env.SKIP_SIGNATURE_CHECK === 'true') {
+    console.log('[DEBUG] Signature check bypassed');
+    return true;
+  }
+
+  if (!signature) {
+    console.log('[DEBUG] No signature provided');
+    return false;
+  }
+
+  const result = verifyHmacSignature(payload, signature, config.webhookSecret);
+  if (!result) {
+    console.log('[DEBUG] Signature verification failed');
+    console.log('[DEBUG] Payload length:', payload.length);
+    console.log('[DEBUG] Signature:', signature.substring(0, 20) + '...');
+  }
+  return result;
 }
 
 /**
