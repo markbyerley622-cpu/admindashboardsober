@@ -112,7 +112,7 @@ router.get('/categories', async (req, res, next) => {
  */
 router.get('/:id', async (req, res, next) => {
   try {
-    const authReq = req as AuthenticatedRequest;
+    const authReq = req as unknown as AuthenticatedRequest;
     const submission = await moderationService.getSubmissionDetail(
       req.params.id,
       authReq.admin.id
