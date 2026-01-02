@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: sober-admin-server
+    runtime: node
+    rootDir: admin-server
+    buildCommand: npm install && npx prisma generate && npm run build && npx prisma db push
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 4000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: USER_APP_WEBHOOK_URL
+        sync: false
