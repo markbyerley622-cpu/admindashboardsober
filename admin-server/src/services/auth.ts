@@ -35,12 +35,12 @@ export function generateToken(admin: Pick<AdminUser, 'id' | 'email' | 'role'>): 
   const payload: Omit<JWTPayload, 'iat' | 'exp'> = {
     sub: admin.id,
     email: admin.email,
-    role: admin.role,
+    role: admin.role as AdminRole,
   };
 
   return jwt.sign(payload, config.jwtSecret, {
-    expiresIn: config.jwtExpiresIn,
-  });
+    expiresIn: config.jwtExpiresIn as string,
+  } as jwt.SignOptions);
 }
 
 /**

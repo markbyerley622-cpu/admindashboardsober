@@ -138,10 +138,12 @@ export interface WebhookPayload {
     userId?: string;
     walletAddress?: string;
     taskId?: string;
+    taskName?: string;
     status?: SubmissionStatus;
     rewardAmount?: string;
     rewardToken?: string;
     reason?: string;
+    txHash?: string;
   };
 }
 
