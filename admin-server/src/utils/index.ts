@@ -73,8 +73,17 @@ export function verifyHmacSignature(
   signature: string,
   secret: string
 ): boolean {
-  const expected = createHmacSignature(payload, secret);
-  return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  try {
+    const expected = createHmacSignature(payload, secret);
+    // Ensure both are same length before comparing (timingSafeEqual requires it)
+    if (signature.length !== expected.length) {
+      return false;
+    }
+    return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+  } catch (error) {
+    console.error('Signature verification error:', error);
+    return false;
+  }
 }
 
 /**

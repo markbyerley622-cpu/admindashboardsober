@@ -30,6 +30,10 @@ import { readFile, getFileMetadata } from './services/storage.js';
 // =============================================================================
 const app = express();
 
+// Trust proxy - required for Render/Heroku/etc where app is behind a load balancer
+// This allows express-rate-limit to correctly identify users via X-Forwarded-For
+app.set('trust proxy', 1);
+
 // =============================================================================
 // SECURITY MIDDLEWARE
 // =============================================================================
@@ -72,9 +76,14 @@ const authLimiter = rateLimit({
 });
 
 // =============================================================================
-// BODY PARSING
+// BODY PARSING (preserve raw body for signature verification)
 // =============================================================================
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({
+  limit: '1mb',
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString();
+  }
+}));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
 // =============================================================================
@@ -96,6 +105,34 @@ app.get('/health', async (_req, res) => {
       { database: 'disconnected' }
     ));
   }
+});
+
+// =============================================================================
+// DEBUG ENDPOINT - Test signature verification
+// =============================================================================
+import { createHmacSignature } from './utils/index.js';
+
+app.post('/debug/test-signature', (req: any, res) => {
+  const signature = req.headers['x-signature'] as string;
+  const rawBody = req.rawBody;
+  const bodyStr = JSON.stringify(req.body);
+
+  const expectedFromRaw = rawBody ? createHmacSignature(rawBody, config.webhookSecret) : 'NO_RAW_BODY';
+  const expectedFromStringify = createHmacSignature(bodyStr, config.webhookSecret);
+
+  res.json({
+    success: true,
+    debug: {
+      receivedSignature: signature || 'NOT_PROVIDED',
+      hasRawBody: !!rawBody,
+      rawBodyLength: rawBody?.length || 0,
+      stringifiedBodyLength: bodyStr.length,
+      expectedSignatureFromRawBody: expectedFromRaw,
+      expectedSignatureFromStringify: expectedFromStringify,
+      signaturesMatch: signature === expectedFromRaw || signature === expectedFromStringify,
+      secretFirstChars: config.webhookSecret.substring(0, 10) + '...',
+    }
+  });
 });
 
 // =============================================================================

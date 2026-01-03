@@ -20,22 +20,30 @@ const router = Router();
 
 /**
  * Verify request signature from user app
- * Can be bypassed with SKIP_SIGNATURE_CHECK=true for development
  */
 function verifyAppSignature(
-  req: { body: unknown; headers: { 'x-signature'?: string } }
+  req: { body: unknown; headers: { 'x-signature'?: string }; rawBody?: string }
 ): boolean {
-  // Skip signature check if configured (for development/testing)
-  if (config.skipSignatureCheck) {
-    console.log('[integration] Skipping signature check (SKIP_SIGNATURE_CHECK=true)');
+  // Debug mode - bypass signature check if SKIP_SIGNATURE_CHECK is set
+  if (process.env.SKIP_SIGNATURE_CHECK === 'true') {
+    console.log('[DEBUG] Signature check bypassed');
     return true;
   }
 
   const signature = req.headers['x-signature'];
-  if (!signature) return false;
+  if (!signature) {
+    console.log('[DEBUG] No signature provided');
+    return false;
+  }
 
-  const payload = JSON.stringify(req.body);
-  return verifyHmacSignature(payload, signature, config.webhookSecret);
+  // Use raw body to preserve exact payload for signature verification
+  const payload = req.rawBody || JSON.stringify(req.body);
+  const result = verifyHmacSignature(payload, signature, config.webhookSecret);
+  if (!result) {
+    console.log('[DEBUG] Signature verification failed');
+    console.log('[DEBUG] Payload length:', payload.length);
+  }
+  return result;
 }
 
 /**

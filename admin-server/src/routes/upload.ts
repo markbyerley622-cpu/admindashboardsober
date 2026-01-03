@@ -50,19 +50,29 @@ const confirmUploadSchema = z.object({
 /**
  * Verify request signature from user app
  * Prevents unauthorized upload requests
- * Can be bypassed with SKIP_SIGNATURE_CHECK=true for development
  */
 function verifyUserAppSignature(
   payload: string,
   signature: string | undefined
 ): boolean {
-  // Skip signature check if configured (for development/testing)
-  if (config.skipSignatureCheck) {
-    console.log('[upload] Skipping signature check (SKIP_SIGNATURE_CHECK=true)');
+  // Debug mode - bypass signature check if SKIP_SIGNATURE_CHECK is set
+  if (process.env.SKIP_SIGNATURE_CHECK === 'true') {
+    console.log('[DEBUG] Signature check bypassed');
     return true;
   }
-  if (!signature) return false;
-  return verifyHmacSignature(payload, signature, config.webhookSecret);
+
+  if (!signature) {
+    console.log('[DEBUG] No signature provided');
+    return false;
+  }
+
+  const result = verifyHmacSignature(payload, signature, config.webhookSecret);
+  if (!result) {
+    console.log('[DEBUG] Signature verification failed');
+    console.log('[DEBUG] Payload length:', payload.length);
+    console.log('[DEBUG] Signature:', signature.substring(0, 20) + '...');
+  }
+  return result;
 }
 
 /**
@@ -72,9 +82,9 @@ function verifyUserAppSignature(
  */
 router.post('/request', submissionRateLimiter, async (req, res, next) => {
   try {
-    // Verify signature from user app
+    // Verify signature from user app (use raw body to preserve exact payload)
     const signature = req.headers['x-signature'] as string;
-    const bodyStr = JSON.stringify(req.body);
+    const bodyStr = (req as any).rawBody || JSON.stringify(req.body);
 
     if (!verifyUserAppSignature(bodyStr, signature)) {
       throw Errors.unauthorized('Invalid request signature');
@@ -189,9 +199,9 @@ router.put('/direct', raw({ type: '*/*', limit: '10mb' }), async (req, res, next
  */
 router.post('/confirm', submissionRateLimiter, async (req, res, next) => {
   try {
-    // Verify signature from user app
+    // Verify signature from user app (use raw body to preserve exact payload)
     const signature = req.headers['x-signature'] as string;
-    const bodyStr = JSON.stringify(req.body);
+    const bodyStr = (req as any).rawBody || JSON.stringify(req.body);
 
     if (!verifyUserAppSignature(bodyStr, signature)) {
       throw Errors.unauthorized('Invalid request signature');

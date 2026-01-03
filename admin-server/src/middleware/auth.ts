@@ -1,21 +1,21 @@
 // =============================================================================
 // AUTHENTICATION MIDDLEWARE - JWT verification and role-based access control
 // =============================================================================
-import type { Response, NextFunction } from 'express';
+import type { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
-import type { AdminRole } from '../types/index.js';
+import type { AdminRole, AuthenticatedRequest } from '../types/index.js';
 import { config } from '../config/index.js';
-import type { AuthenticatedRequest, JWTPayload } from '../types/index.js';
+import type { JWTPayload } from '../types/index.js';
 import { errorResponse } from '../utils/index.js';
 
 /**
  * Middleware to verify JWT token and attach admin info to request
  */
-export function authenticate(
-  req: AuthenticatedRequest,
+export const authenticate: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
-): void {
+): void => {
   try {
     const authHeader = req.headers.authorization;
 
@@ -31,7 +31,7 @@ export function authenticate(
     const payload = jwt.verify(token, config.jwtSecret) as JWTPayload;
 
     // Attach admin info to request for downstream use
-    req.admin = {
+    (req as AuthenticatedRequest).admin = {
       id: payload.sub,
       email: payload.email,
       role: payload.role,
@@ -49,7 +49,7 @@ export function authenticate(
     }
     res.status(500).json(errorResponse('AUTH_ERROR', 'Authentication failed'));
   }
-}
+};
 
 /**
  * Role hierarchy for permission checks
@@ -65,14 +65,15 @@ function getRoleLevel(role: AdminRole): number {
  * Factory function to create role-checking middleware
  * Requires the admin to have at least the specified role level
  */
-export function requireRole(minimumRole: AdminRole) {
-  return (req: AuthenticatedRequest, res: Response, next: NextFunction): void => {
-    if (!req.admin) {
+export function requireRole(minimumRole: AdminRole): RequestHandler {
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const authReq = req as AuthenticatedRequest;
+    if (!authReq.admin) {
       res.status(401).json(errorResponse('UNAUTHORIZED', 'Not authenticated'));
       return;
     }
 
-    const adminLevel = getRoleLevel(req.admin.role);
+    const adminLevel = getRoleLevel(authReq.admin.role);
     const requiredLevel = getRoleLevel(minimumRole);
 
     if (adminLevel < requiredLevel) {
@@ -100,17 +101,18 @@ export const requireSuperAdmin = requireRole('SUPER_ADMIN');
  * Middleware to check if admin can perform moderation actions
  * READ_ONLY users cannot approve/reject
  */
-export function canModerate(
-  req: AuthenticatedRequest,
+export const canModerate: RequestHandler = (
+  req: Request,
   res: Response,
   next: NextFunction
-): void {
-  if (!req.admin) {
+): void => {
+  const authReq = req as AuthenticatedRequest;
+  if (!authReq.admin) {
     res.status(401).json(errorResponse('UNAUTHORIZED', 'Not authenticated'));
     return;
   }
 
-  if (req.admin.role === 'READ_ONLY') {
+  if (authReq.admin.role === 'READ_ONLY') {
     res.status(403).json(
       errorResponse('FORBIDDEN', 'Read-only users cannot perform moderation actions')
     );
@@ -118,4 +120,4 @@ export function canModerate(
   }
 
   next();
-}
+};

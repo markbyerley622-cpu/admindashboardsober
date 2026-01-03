@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { Suspense, useEffect, useState, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Sidebar } from '@/components/Sidebar';
 import { SubmissionTable } from '@/components/SubmissionTable';
 import { useRequireAuth } from '@/hooks/useAuth';
 import * as api from '@/lib/api';
-import type { SubmissionListItem, SubmissionStatus } from '@/types';
+import type { SubmissionListItem } from '@/types';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: 'All Status' },
@@ -16,7 +16,7 @@ const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'REJECTED', label: 'Rejected' },
 ];
 
-export default function SubmissionsPage() {
+function SubmissionsContent() {
   const { admin, logout, ready } = useRequireAuth();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -212,5 +212,19 @@ export default function SubmissionsPage() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function SubmissionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center">
+          <div className="w-8 h-8 border-4 border-gray-200 border-t-brand-600 rounded-full spinner" />
+        </div>
+      }
+    >
+      <SubmissionsContent />
+    </Suspense>
   );
 }

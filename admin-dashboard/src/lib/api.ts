@@ -11,7 +11,7 @@ import type {
   Admin,
 } from '@/types';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://admindashboardsober.onrender.com/api/v1';
 
 // =============================================================================
 // AUTH TOKEN MANAGEMENT
@@ -176,7 +176,12 @@ export async function getSubmissions(
 
   return {
     items: response.data || [],
-    meta: response.meta || { page: 1, limit: 20, total: 0, totalPages: 0 },
+    meta: {
+      page: response.meta?.page ?? 1,
+      limit: response.meta?.limit ?? 20,
+      total: response.meta?.total ?? 0,
+      totalPages: response.meta?.totalPages ?? 0,
+    },
   };
 }
 
