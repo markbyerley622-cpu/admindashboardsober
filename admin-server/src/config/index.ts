@@ -41,6 +41,7 @@ const configSchema = z.object({
 
   // Security
   bcryptRounds: z.coerce.number().default(12),
+  skipSignatureCheck: z.coerce.boolean().default(false),
 
   // File Upload
   maxFileSizeMb: z.coerce.number().default(10),
@@ -70,6 +71,7 @@ const parseConfig = () => {
     webhookSecret: process.env.WEBHOOK_SECRET,
     userAppWebhookUrl: process.env.USER_APP_WEBHOOK_URL,
     bcryptRounds: process.env.BCRYPT_ROUNDS,
+    skipSignatureCheck: process.env.SKIP_SIGNATURE_CHECK,
     maxFileSizeMb: process.env.MAX_FILE_SIZE_MB,
     allowedMimeTypes: process.env.ALLOWED_MIME_TYPES,
   });

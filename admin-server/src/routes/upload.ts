@@ -50,11 +50,17 @@ const confirmUploadSchema = z.object({
 /**
  * Verify request signature from user app
  * Prevents unauthorized upload requests
+ * Can be bypassed with SKIP_SIGNATURE_CHECK=true for development
  */
 function verifyUserAppSignature(
   payload: string,
   signature: string | undefined
 ): boolean {
+  // Skip signature check if configured (for development/testing)
+  if (config.skipSignatureCheck) {
+    console.log('[upload] Skipping signature check (SKIP_SIGNATURE_CHECK=true)');
+    return true;
+  }
   if (!signature) return false;
   return verifyHmacSignature(payload, signature, config.webhookSecret);
 }
