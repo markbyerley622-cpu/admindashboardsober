@@ -47,4 +47,4 @@ USER nodeuser
 EXPOSE 4000
 
 # Push schema, seed database, and start server
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx src/scripts/seed.ts && node dist/index.js"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate --accept-data-loss && npx tsx src/scripts/seed.ts && node dist/index.js"]
